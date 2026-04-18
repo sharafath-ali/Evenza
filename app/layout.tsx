@@ -34,7 +34,6 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", schibstedGrotesk.variable, martianMono.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">
-        {/* Fixed full-screen light rays background — persists across all pages */}
         <div
           style={{
             position: "fixed",
@@ -45,7 +44,7 @@ export default function RootLayout({
         >
           <LightRays
             raysOrigin="top-center-offset"
-            raysColor="#ffffff"
+            raysColor="#2f7454ff"
             raysSpeed={1}
             lightSpread={0.5}
             rayLength={3}
