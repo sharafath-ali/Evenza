@@ -250,7 +250,7 @@ function EventCard({
   return (
     <article
       id={`event-card-${event.id}`}
-      className="group flex flex-col rounded-2xl border border-white/8 bg-[#0d161a]/60 overflow-hidden hover:border-[#59deca]/30 transition-all duration-300"
+      className="group flex flex-col rounded-2xl border border-white/10 bg-white/6 backdrop-blur-md overflow-hidden hover:border-[#59deca]/35 hover:bg-white/9 transition-all duration-300"
     >
       {/* Image */}
       <div className="relative h-[220px] w-full overflow-hidden">
@@ -411,7 +411,7 @@ export default function HomeClient() {
 
       {/* ─── Event Grid ──────────────────────────────────────────── */}
       {filtered.length > 0 ? (
-        <div className="events">
+        <div className="grid sm:grid-cols-2 grid-cols-1 gap-8 w-full">
           {filtered.map((event) => (
             <EventCard
               key={event.id}
