@@ -1,291 +1,453 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
+import { Renderer, Program, Triangle, Mesh } from "ogl";
 
-type RaysOrigin =
+export type RaysOrigin =
   | "top-center"
+  | "top-center-offset"
   | "top-left"
   | "top-right"
-  | "center"
+  | "right"
+  | "left"
   | "bottom-center"
-  | "bottom-left"
-  | "bottom-right";
+  | "bottom-right"
+  | "bottom-left";
 
 interface LightRaysProps {
-  /** Where rays originate from */
   raysOrigin?: RaysOrigin;
-  /** Base colour of the rays (hex / css colour string) */
   raysColor?: string;
-  /** Animation speed multiplier */
   raysSpeed?: number;
-  /** Spread angle of the ray fan (0–1) */
   lightSpread?: number;
-  /** Relative length of each ray (1 = full viewport diagonal) */
   rayLength?: number;
-  /** Whether rays follow the mouse cursor */
-  followMouse?: boolean;
-  /** How strongly the mouse displaces the origin (0–1) */
-  mouseInfluence?: number;
-  /** Amount of Perlin-like noise applied to ray edges */
-  noiseAmount?: number;
-  /** Distortion / wave effect on each ray */
-  distortion?: number;
-  /** Extra CSS class applied to the wrapper element */
-  className?: string;
-  /** Whether rays pulse in brightness */
   pulsating?: boolean;
-  /** How far rays fade out (0 = no fade, 1 = full fade by end) */
   fadeDistance?: number;
-  /** Colour saturation multiplier */
   saturation?: number;
+  followMouse?: boolean;
+  mouseInfluence?: number;
+  noiseAmount?: number;
+  distortion?: number;
+  className?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Tiny deterministic noise helper (no external dep required)
-// ---------------------------------------------------------------------------
-function pseudoNoise(x: number, y: number, seed: number): number {
-  const n = Math.sin(x * 127.1 + y * 311.7 + seed * 74.3) * 43758.5453;
-  return n - Math.floor(n);
-}
+const DEFAULT_COLOR = "#ffffff";
 
-// ---------------------------------------------------------------------------
-// Parse a CSS colour string into [r, g, b] in 0-255 range
-// ---------------------------------------------------------------------------
-function parseColor(color: string): [number, number, number] {
-  const div = document.createElement("div");
-  div.style.color = color;
-  document.body.appendChild(div);
-  const computed = getComputedStyle(div).color;
-  document.body.removeChild(div);
-  const match = computed.match(/\d+/g);
-  if (!match || match.length < 3) return [255, 255, 255];
-  return [parseInt(match[0]), parseInt(match[1]), parseInt(match[2])];
-}
+const hexToRgb = (hex: string): [number, number, number] => {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m
+    ? [
+        parseInt(m[1], 16) / 255,
+        parseInt(m[2], 16) / 255,
+        parseInt(m[3], 16) / 255,
+      ]
+    : [1, 1, 1];
+};
 
-// ---------------------------------------------------------------------------
-// Resolve origin to normalised [0-1, 0-1] coordinates
-// ---------------------------------------------------------------------------
-function resolveOrigin(
+const getAnchorAndDir = (
   origin: RaysOrigin,
-  mouseNorm: { x: number; y: number } | null,
-  influence: number,
-  canvas: HTMLCanvasElement
-): { x: number; y: number } {
-  const origins: Record<RaysOrigin, { x: number; y: number }> = {
-    "top-center": { x: 0.5, y: 0 },
-    "top-left": { x: 0, y: 0 },
-    "top-right": { x: 1, y: 0 },
-    center: { x: 0.5, y: 0.5 },
-    "bottom-center": { x: 0.5, y: 1 },
-    "bottom-left": { x: 0, y: 1 },
-    "bottom-right": { x: 1, y: 1 },
-  };
+  w: number,
+  h: number,
+): { anchor: [number, number]; dir: [number, number] } => {
+  const outside = 0.2;
+  switch (origin) {
+    case "top-left":
+      return { anchor: [0, -outside * h], dir: [0, 1] };
+    case "top-right":
+      return { anchor: [w, -outside * h], dir: [0, 1] };
+    case "top-center-offset":
+      return { anchor: [0.5 * w + 0.2 * w, -outside * h], dir: [-0.2, 1] };
+    case "left":
+      return { anchor: [-outside * w, 0.5 * h], dir: [1, 0] };
+    case "right":
+      return { anchor: [(1 + outside) * w, 0.5 * h], dir: [-1, 0] };
+    case "bottom-left":
+      return { anchor: [0, (1 + outside) * h], dir: [0, -1] };
+    case "bottom-center":
+      return { anchor: [0.5 * w, (1 + outside) * h], dir: [0, -1] };
+    case "bottom-right":
+      return { anchor: [w, (1 + outside) * h], dir: [0, -1] };
+    default: // "top-center"
+      return { anchor: [0.5 * w, -outside * h], dir: [0, 1] };
+  }
+};
 
-  const base = origins[origin] ?? origins["top-center"];
-  if (!mouseNorm) return { x: base.x * canvas.width, y: base.y * canvas.height };
-
-  return {
-    x: (base.x + (mouseNorm.x - base.x) * influence) * canvas.width,
-    y: (base.y + (mouseNorm.y - base.y) * influence) * canvas.height,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-export default function LightRays({
+const LightRays: React.FC<LightRaysProps> = ({
   raysOrigin = "top-center",
-  raysColor = "#ffffff",
+  raysColor = DEFAULT_COLOR,
   raysSpeed = 1,
-  lightSpread = 0.5,
+  lightSpread = 1,
   rayLength = 2,
-  followMouse = false,
-  mouseInfluence = 0.1,
-  noiseAmount = 0,
-  distortion = 0,
-  className = "",
   pulsating = false,
-  fadeDistance = 1,
-  saturation = 1,
-}: LightRaysProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef<{ x: number; y: number } | null>(null);
-  const rafRef = useRef<number>(0);
-  const startRef = useRef<number>(performance.now());
-  const colorRef = useRef<[number, number, number]>([255, 255, 255]);
+  fadeDistance = 1.0,
+  saturation = 1.0,
+  followMouse = true,
+  mouseInfluence = 0.1,
+  noiseAmount = 0.0,
+  distortion = 0.0,
+  className = "",
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const uniformsRef = useRef<any>(null);
+  const rendererRef = useRef<Renderer | null>(null);
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
+  const smoothMouseRef = useRef({ x: 0.5, y: 0.5 });
+  const animationIdRef = useRef<number | null>(null);
+  const meshRef = useRef<any>(null);
+  const cleanupFunctionRef = useRef<(() => void) | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Resolve colour after mount
   useEffect(() => {
-    colorRef.current = parseColor(raysColor);
-  }, [raysColor]);
+    if (!containerRef.current) return;
 
-  // Mouse tracking
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      const canvas = canvasRef.current;
-      if (!canvas || !followMouse) return;
-      const rect = canvas.getBoundingClientRect();
-      mouseRef.current = {
-        x: (e.clientX - rect.left) / rect.width,
-        y: (e.clientY - rect.top) / rect.height,
-      };
-    },
-    [followMouse]
-  );
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 },
+    );
 
-  const handleMouseLeave = useCallback(() => {
-    mouseRef.current = null;
+    observerRef.current.observe(containerRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!isVisible || !containerRef.current) return;
 
-    const parent = canvas.parentElement;
-    const ctx = canvas.getContext("2d");
-    if (!ctx || !parent) return;
-
-    // -----------------------------------------------------------------------
-    // Resize observer
-    // -----------------------------------------------------------------------
-    const ro = new ResizeObserver(() => {
-      canvas.width = parent.offsetWidth;
-      canvas.height = parent.offsetHeight;
-    });
-    ro.observe(parent);
-    canvas.width = parent.offsetWidth;
-    canvas.height = parent.offsetHeight;
-
-    // -----------------------------------------------------------------------
-    // Draw frame
-    // -----------------------------------------------------------------------
-    const NUM_RAYS = 28;
-
-    function draw(timestamp: number) {
-      if (!ctx || !canvas) return;
-      const elapsed = (timestamp - startRef.current) * 0.001 * raysSpeed;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const [r, g, b] = colorRef.current;
-
-      // Adjust saturation: lerp toward grey
-      const grey = 0.299 * r + 0.587 * g + 0.114 * b;
-      const sr = grey + (r - grey) * saturation;
-      const sg = grey + (g - grey) * saturation;
-      const sb = grey + (b - grey) * saturation;
-
-      const origin = resolveOrigin(
-        raysOrigin,
-        followMouse ? mouseRef.current : null,
-        mouseInfluence,
-        canvas
-      );
-
-      const diagonal = Math.hypot(canvas.width, canvas.height);
-      const maxLen = diagonal * rayLength;
-      const halfSpread = Math.PI * lightSpread; // half-angle of fan in radians
-
-      // Base angle: point "into" the canvas from the origin
-      let baseAngle = Math.PI / 2; // pointing down for top-center
-      if (raysOrigin === "top-left") baseAngle = Math.PI * 0.75;
-      else if (raysOrigin === "top-right") baseAngle = Math.PI * 0.25;
-      else if (raysOrigin === "bottom-center") baseAngle = -Math.PI / 2;
-      else if (raysOrigin === "bottom-left") baseAngle = -Math.PI * 0.75;
-      else if (raysOrigin === "bottom-right") baseAngle = -Math.PI * 0.25;
-      else if (raysOrigin === "center") baseAngle = Math.PI / 2;
-
-      const pulseAlpha = pulsating
-        ? 0.55 + 0.45 * Math.sin(elapsed * Math.PI * 2)
-        : 1;
-
-      for (let i = 0; i < NUM_RAYS; i++) {
-        const t = i / (NUM_RAYS - 1); // 0..1
-        const spreadAngle = baseAngle + (t - 0.5) * 2 * halfSpread;
-
-        // Per-ray time offset for gentle sway
-        const sway = Math.sin(elapsed * 0.7 + i * 1.37) * 0.04 * raysSpeed;
-        const angle = spreadAngle + sway;
-
-        // Noise on ray width
-        const noiseSeed = pseudoNoise(i, Math.floor(elapsed), 42) * noiseAmount * 0.15;
-
-        // Ray width (centre rays slightly wider)
-        const centerBias = 1 - Math.abs(t - 0.5) * 1.4;
-        const rayWidth = Math.max(2, 40 * centerBias + noiseSeed * 30);
-
-        // Distortion — wiggle the ray tip
-        const distortX = Math.sin(elapsed * 2.1 + i) * distortion * 40;
-        const distortY = Math.cos(elapsed * 1.7 + i) * distortion * 40;
-
-        const endX = origin.x + Math.cos(angle) * maxLen + distortX;
-        const endY = origin.y + Math.sin(angle) * maxLen + distortY;
-
-        // Fade alpha from origin to tip
-        const baseOpacity = (0.08 + 0.12 * centerBias) * pulseAlpha;
-        const alphaOrigin = baseOpacity;
-        const alphaEnd = baseOpacity * (1 - fadeDistance);
-
-        const grad = ctx.createLinearGradient(origin.x, origin.y, endX, endY);
-        grad.addColorStop(0, `rgba(${sr},${sg},${sb},${alphaOrigin})`);
-        grad.addColorStop(1, `rgba(${sr},${sg},${sb},${alphaEnd < 0 ? 0 : alphaEnd})`);
-
-        ctx.save();
-        ctx.beginPath();
-        // Draw a narrow trapezoid centred on the ray angle
-        const perp = angle + Math.PI / 2;
-        const hw = rayWidth / 2;
-        ctx.moveTo(origin.x + Math.cos(perp) * 1, origin.y + Math.sin(perp) * 1);
-        ctx.lineTo(endX + Math.cos(perp) * hw, endY + Math.sin(perp) * hw);
-        ctx.lineTo(endX - Math.cos(perp) * hw, endY - Math.sin(perp) * hw);
-        ctx.lineTo(origin.x - Math.cos(perp) * 1, origin.y - Math.sin(perp) * 1);
-        ctx.closePath();
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.restore();
-      }
-
-      rafRef.current = requestAnimationFrame(draw);
+    if (cleanupFunctionRef.current) {
+      cleanupFunctionRef.current();
+      cleanupFunctionRef.current = null;
     }
 
-    rafRef.current = requestAnimationFrame(draw);
+    const initializeWebGL = async () => {
+      if (!containerRef.current) return;
 
-    window.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseleave", handleMouseLeave);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      if (!containerRef.current) return;
+
+      const renderer = new Renderer({
+        dpr: Math.min(window.devicePixelRatio, 2),
+        alpha: true,
+      });
+      rendererRef.current = renderer;
+
+      const gl = renderer.gl;
+      gl.canvas.style.width = "100%";
+      gl.canvas.style.height = "100%";
+
+      while (containerRef.current.firstChild) {
+        containerRef.current.removeChild(containerRef.current.firstChild);
+      }
+      containerRef.current.appendChild(gl.canvas);
+
+      const vert = `
+attribute vec2 position;
+varying vec2 vUv;
+void main() {
+  vUv = position * 0.5 + 0.5;
+  gl_Position = vec4(position, 0.0, 1.0);
+}`;
+
+      const frag = `precision highp float;
+
+uniform float iTime;
+uniform vec2  iResolution;
+
+uniform vec2  rayPos;
+uniform vec2  rayDir;
+uniform vec3  raysColor;
+uniform float raysSpeed;
+uniform float lightSpread;
+uniform float rayLength;
+uniform float pulsating;
+uniform float fadeDistance;
+uniform float saturation;
+uniform vec2  mousePos;
+uniform float mouseInfluence;
+uniform float noiseAmount;
+uniform float distortion;
+
+varying vec2 vUv;
+
+float noise(vec2 st) {
+  return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+float rayStrength(vec2 raySource, vec2 rayRefDirection, vec2 coord,
+                  float seedA, float seedB, float speed) {
+  vec2 sourceToCoord = coord - raySource;
+  vec2 dirNorm = normalize(sourceToCoord);
+  float cosAngle = dot(dirNorm, rayRefDirection);
+
+  float distortedAngle = cosAngle + distortion * sin(iTime * 2.0 + length(sourceToCoord) * 0.01) * 0.2;
+  
+  float spreadFactor = pow(max(distortedAngle, 0.0), 1.0 / max(lightSpread, 0.001));
+
+  float distance = length(sourceToCoord);
+  float maxDistance = iResolution.x * rayLength;
+  float lengthFalloff = clamp((maxDistance - distance) / maxDistance, 0.0, 1.0);
+  
+  float fadeFalloff = clamp((iResolution.x * fadeDistance - distance) / (iResolution.x * fadeDistance), 0.5, 1.0);
+  float pulse = pulsating > 0.5 ? (0.8 + 0.2 * sin(iTime * speed * 3.0)) : 1.0;
+
+  float baseStrength = clamp(
+    (0.45 + 0.15 * sin(distortedAngle * seedA + iTime * speed)) +
+    (0.3 + 0.2 * cos(-distortedAngle * seedB + iTime * speed)),
+    0.0, 1.0
+  );
+
+  return baseStrength * lengthFalloff * fadeFalloff * spreadFactor * pulse;
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  vec2 coord = vec2(fragCoord.x, iResolution.y - fragCoord.y);
+  
+  vec2 finalRayDir = rayDir;
+  if (mouseInfluence > 0.0) {
+    vec2 mouseScreenPos = mousePos * iResolution.xy;
+    vec2 mouseDirection = normalize(mouseScreenPos - rayPos);
+    finalRayDir = normalize(mix(rayDir, mouseDirection, mouseInfluence));
+  }
+
+  vec4 rays1 = vec4(1.0) *
+               rayStrength(rayPos, finalRayDir, coord, 36.2214, 21.11349,
+                           1.5 * raysSpeed);
+  vec4 rays2 = vec4(1.0) *
+               rayStrength(rayPos, finalRayDir, coord, 22.3991, 18.0234,
+                           1.1 * raysSpeed);
+
+  fragColor = rays1 * 0.5 + rays2 * 0.4;
+
+  if (noiseAmount > 0.0) {
+    float n = noise(coord * 0.01 + iTime * 0.1);
+    fragColor.rgb *= (1.0 - noiseAmount + noiseAmount * n);
+  }
+
+  float brightness = 1.0 - (coord.y / iResolution.y);
+  fragColor.x *= 0.1 + brightness * 0.8;
+  fragColor.y *= 0.3 + brightness * 0.6;
+  fragColor.z *= 0.5 + brightness * 0.5;
+
+  if (saturation != 1.0) {
+    float gray = dot(fragColor.rgb, vec3(0.299, 0.587, 0.114));
+    fragColor.rgb = mix(vec3(gray), fragColor.rgb, saturation);
+  }
+
+  fragColor.rgb *= raysColor;
+}
+
+void main() {
+  vec4 color;
+  mainImage(color, gl_FragCoord.xy);
+  gl_FragColor  = color;
+}`;
+
+      const uniforms = {
+        iTime: { value: 0 },
+        iResolution: { value: [1, 1] },
+
+        rayPos: { value: [0, 0] },
+        rayDir: { value: [0, 1] },
+
+        raysColor: { value: hexToRgb(raysColor) },
+        raysSpeed: { value: raysSpeed },
+        lightSpread: { value: lightSpread },
+        rayLength: { value: rayLength },
+        pulsating: { value: pulsating ? 1.0 : 0.0 },
+        fadeDistance: { value: fadeDistance },
+        saturation: { value: saturation },
+        mousePos: { value: [0.5, 0.5] },
+        mouseInfluence: { value: mouseInfluence },
+        noiseAmount: { value: noiseAmount },
+        distortion: { value: distortion },
+      };
+      uniformsRef.current = uniforms;
+
+      const geometry = new Triangle(gl);
+      const program = new Program(gl, {
+        vertex: vert,
+        fragment: frag,
+        uniforms,
+      });
+      const mesh = new Mesh(gl, { geometry, program });
+      meshRef.current = mesh;
+
+      const updatePlacement = () => {
+        if (!containerRef.current || !renderer) return;
+
+        renderer.dpr = Math.min(window.devicePixelRatio, 2);
+
+        const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+        renderer.setSize(wCSS, hCSS);
+
+        const dpr = renderer.dpr;
+        const w = wCSS * dpr;
+        const h = hCSS * dpr;
+
+        uniforms.iResolution.value = [w, h];
+
+        const { anchor, dir } = getAnchorAndDir(raysOrigin, w, h);
+        uniforms.rayPos.value = anchor;
+        uniforms.rayDir.value = dir;
+      };
+
+      const loop = (t: number) => {
+        if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
+          return;
+        }
+
+        uniforms.iTime.value = t * 0.001;
+
+        if (followMouse && mouseInfluence > 0.0) {
+          const smoothing = 0.92;
+
+          smoothMouseRef.current.x =
+            smoothMouseRef.current.x * smoothing +
+            mouseRef.current.x * (1 - smoothing);
+          smoothMouseRef.current.y =
+            smoothMouseRef.current.y * smoothing +
+            mouseRef.current.y * (1 - smoothing);
+
+          uniforms.mousePos.value = [
+            smoothMouseRef.current.x,
+            smoothMouseRef.current.y,
+          ];
+        }
+
+        try {
+          renderer.render({ scene: mesh });
+          animationIdRef.current = requestAnimationFrame(loop);
+        } catch (error) {
+          console.warn("WebGL rendering error:", error);
+          return;
+        }
+      };
+
+      window.addEventListener("resize", updatePlacement);
+      updatePlacement();
+      animationIdRef.current = requestAnimationFrame(loop);
+
+      cleanupFunctionRef.current = () => {
+        if (animationIdRef.current) {
+          cancelAnimationFrame(animationIdRef.current);
+          animationIdRef.current = null;
+        }
+
+        window.removeEventListener("resize", updatePlacement);
+
+        if (renderer) {
+          try {
+            const canvas = renderer.gl.canvas;
+            const loseContextExt =
+              renderer.gl.getExtension("WEBGL_lose_context");
+            if (loseContextExt) {
+              loseContextExt.loseContext();
+            }
+
+            if (canvas && canvas.parentNode) {
+              canvas.parentNode.removeChild(canvas);
+            }
+          } catch (error) {
+            console.warn("Error during WebGL cleanup:", error);
+          }
+        }
+
+        rendererRef.current = null;
+        uniformsRef.current = null;
+        meshRef.current = null;
+      };
+    };
+
+    initializeWebGL();
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
-      ro.disconnect();
-      window.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      if (cleanupFunctionRef.current) {
+        cleanupFunctionRef.current();
+        cleanupFunctionRef.current = null;
+      }
     };
   }, [
+    isVisible,
     raysOrigin,
+    raysColor,
     raysSpeed,
     lightSpread,
     rayLength,
+    pulsating,
+    fadeDistance,
+    saturation,
     followMouse,
     mouseInfluence,
     noiseAmount,
     distortion,
+  ]);
+
+  useEffect(() => {
+    if (!uniformsRef.current || !containerRef.current || !rendererRef.current)
+      return;
+
+    const u = uniformsRef.current;
+    const renderer = rendererRef.current;
+
+    u.raysColor.value = hexToRgb(raysColor);
+    u.raysSpeed.value = raysSpeed;
+    u.lightSpread.value = lightSpread;
+    u.rayLength.value = rayLength;
+    u.pulsating.value = pulsating ? 1.0 : 0.0;
+    u.fadeDistance.value = fadeDistance;
+    u.saturation.value = saturation;
+    u.mouseInfluence.value = mouseInfluence;
+    u.noiseAmount.value = noiseAmount;
+    u.distortion.value = distortion;
+
+    const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
+    const dpr = renderer.dpr;
+    const { anchor, dir } = getAnchorAndDir(raysOrigin, wCSS * dpr, hCSS * dpr);
+    u.rayPos.value = anchor;
+    u.rayDir.value = dir;
+  }, [
+    raysColor,
+    raysSpeed,
+    lightSpread,
+    raysOrigin,
+    rayLength,
     pulsating,
     fadeDistance,
     saturation,
-    handleMouseMove,
-    handleMouseLeave,
+    mouseInfluence,
+    noiseAmount,
+    distortion,
   ]);
 
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current || !rendererRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      mouseRef.current = { x, y };
+    };
+
+    if (followMouse) {
+      window.addEventListener("mousemove", handleMouseMove);
+      return () => window.removeEventListener("mousemove", handleMouseMove);
+    }
+  }, [followMouse]);
+
   return (
-    <canvas
-      ref={canvasRef}
-      className={className}
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-      }}
+    <div
+      ref={containerRef}
+      className={`pointer-events-none relative z-[3] h-full w-full overflow-hidden ${className}`.trim()}
     />
   );
-}
+};
+
+export default LightRays;
