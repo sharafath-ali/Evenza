@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const featuredEvents = [
   {
@@ -10,7 +11,7 @@ const featuredEvents = [
     location: "Pulse Arena, Mumbai",
     attendees: 4200,
     price: "₹999",
-    gradient: "from-green-900/60 to-teal-900/40",
+    image: "/images/event1.png",
     tag: "Trending",
   },
   {
@@ -22,7 +23,7 @@ const featuredEvents = [
     location: "Nexus Hub, Bangalore",
     attendees: 1800,
     price: "₹499",
-    gradient: "from-emerald-900/60 to-green-900/40",
+    image: "/images/event2.png",
     tag: "Selling Fast",
   },
   {
@@ -34,8 +35,47 @@ const featuredEvents = [
     location: "Gallery Commons, Delhi",
     attendees: 900,
     price: "Free",
-    gradient: "from-teal-900/60 to-emerald-900/40",
+    image: "/images/event3.png",
     tag: "Free Entry",
+  },
+];
+
+const moreEvents = [
+  {
+    id: 4,
+    title: "Street Food Carnival",
+    category: "Food",
+    date: "Jun 22, 2025",
+    time: "12:00 PM",
+    location: "Central Park, Pune",
+    attendees: 3100,
+    price: "₹199",
+    image: "/images/event4.png",
+    tag: "New",
+  },
+  {
+    id: 5,
+    title: "Comedy Nights Live",
+    category: "Comedy",
+    date: "Jul 5, 2025",
+    time: "7:30 PM",
+    location: "Laugh Factory, Chennai",
+    attendees: 620,
+    price: "₹799",
+    image: "/images/event5.png",
+    tag: "Limited Seats",
+  },
+  {
+    id: 6,
+    title: "Premier League Watch Party",
+    category: "Sports",
+    date: "Jul 12, 2025",
+    time: "9:00 PM",
+    location: "FanZone Bar, Hyderabad",
+    attendees: 450,
+    price: "₹299",
+    image: "/images/event6.png",
+    tag: "Hot",
   },
 ];
 
@@ -54,6 +94,85 @@ const stats = [
   { value: "80+", label: "Cities" },
   { value: "4.9★", label: "Avg. Rating" },
 ];
+
+function EventCard({
+  event,
+}: {
+  event: (typeof featuredEvents)[0] | (typeof moreEvents)[0];
+}) {
+  return (
+    <article
+      id={`event-card-${event.id}`}
+      className="group flex flex-col gap-0 rounded-2xl border border-white/8 bg-[#0d161a]/60 overflow-hidden hover:border-[#59deca]/30 transition-all duration-300 cursor-pointer"
+    >
+      {/* Poster image */}
+      <div className="relative h-[220px] w-full overflow-hidden">
+        <Image
+          src={event.image}
+          alt={event.title}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d161a] via-transparent to-transparent" />
+        {/* Tag */}
+        <span className="absolute top-3 left-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-semibold text-[#59deca] backdrop-blur-md border border-[#59deca]/25">
+          {event.tag}
+        </span>
+        {/* Price */}
+        <span className="absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
+          {event.price}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-2 px-4 pb-5 pt-3">
+        <span className="pill w-fit">{event.category}</span>
+        <h3 className="text-base font-semibold text-white leading-snug line-clamp-1 group-hover:text-[#59deca] transition-colors">
+          {event.title}
+        </h3>
+
+        <div className="flex flex-col gap-1.5 text-[#bdbdbd] text-xs">
+          <div className="flex items-center gap-2">
+            {/* Calendar icon */}
+            <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            {event.date} · {event.time}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Location icon */}
+            <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            {event.location}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* People icon */}
+            <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            {event.attendees.toLocaleString()} going
+          </div>
+        </div>
+
+        <button
+          id={`book-${event.id}`}
+          className="mt-2 w-full rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200"
+        >
+          Book Now
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export default function Home() {
   return (
@@ -109,7 +228,7 @@ export default function Home() {
         {/* CTA row */}
         <div className="flex flex-wrap justify-center gap-4">
           <button
-            id="explore-btn"
+            id="explore-events-btn"
             className="rounded-full border border-[#182830] bg-[#0d161a] px-8 py-3.5 text-sm font-semibold text-white hover:bg-[#182830] transition-colors"
           >
             <Link href="#events" className="flex items-center gap-2">
@@ -141,6 +260,36 @@ export default function Home() {
         ))}
       </section>
 
+      {/* ─── HERO FULL IMAGE ──────────────────────────────────────── */}
+      <section className="relative w-full h-[420px] rounded-3xl overflow-hidden">
+        <Image
+          src="/images/event-full.png"
+          alt="Featured event spotlight"
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-center px-10 max-w-lg gap-4">
+          <span className="pill w-fit">Spotlight</span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight font-[var(--font-schibsted-grotesk)]">
+            Grand Summer<br />
+            <span className="text-[#59deca]">Music Festival 2025</span>
+          </h2>
+          <p className="text-[#bdbdbd] text-sm">
+            The biggest outdoor music event of the year. 30+ artists, 3 stages,
+            1 unforgettable weekend.
+          </p>
+          <button
+            id="spotlight-book-btn"
+            className="w-fit rounded-full bg-[#59deca] px-7 py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_24px_rgba(89,222,202,0.35)]"
+          >
+            Get Tickets →
+          </button>
+        </div>
+      </section>
+
       {/* ─── CATEGORIES ───────────────────────────────────────────── */}
       <section className="flex flex-col gap-6">
         <h2 className="text-xl font-bold text-[#e7f2ff] font-[var(--font-schibsted-grotesk)]">
@@ -169,96 +318,50 @@ export default function Home() {
           <h2 className="text-xl font-bold text-[#e7f2ff] font-[var(--font-schibsted-grotesk)]">
             Featured Events
           </h2>
-          <Link
-            href="#"
-            className="text-sm text-[#59deca] hover:underline underline-offset-4"
-          >
+          <Link href="#" className="text-sm text-[#59deca] hover:underline underline-offset-4">
             View all →
           </Link>
         </div>
-
         <div className="events">
           {featuredEvents.map((event) => (
-            <article
-              key={event.id}
-              id={`event-card-${event.id}`}
-              className="group flex flex-col gap-4 rounded-2xl border border-white/8 bg-gradient-to-br p-1 hover:border-[#59deca]/30 transition-all duration-300 cursor-pointer"
-            >
-              {/* Poster placeholder */}
-              <div
-                className={`relative h-[220px] w-full rounded-xl bg-gradient-to-br ${event.gradient} overflow-hidden`}
-              >
-                {/* Decorative glow */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(89,222,202,0.15),transparent_60%)]" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-5xl opacity-30">
-                    {event.category === "Music"
-                      ? "🎵"
-                      : event.category === "Tech"
-                      ? "💻"
-                      : "🎨"}
-                  </span>
-                </div>
-                {/* Tag */}
-                <span className="absolute top-3 left-3 rounded-full bg-black/50 px-3 py-1 text-[10px] font-semibold text-[#59deca] backdrop-blur-md border border-[#59deca]/30">
-                  {event.tag}
-                </span>
-                {/* Price */}
-                <span className="absolute top-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
-                  {event.price}
-                </span>
-              </div>
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      </section>
 
-              <div className="flex flex-col gap-2 px-3 pb-4">
-                <span className="pill w-fit">{event.category}</span>
-                <h3 className="text-base font-semibold text-white leading-snug line-clamp-1 group-hover:text-[#59deca] transition-colors">
-                  {event.title}
-                </h3>
-
-                <div className="flex flex-col gap-1.5 text-[#bdbdbd] text-xs">
-                  <div className="flex items-center gap-2">
-                    <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    {event.date} · {event.time}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    {event.location}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                    {event.attendees.toLocaleString()} going
-                  </div>
-                </div>
-
-                <button
-                  id={`book-${event.id}`}
-                  className="mt-2 w-full rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200"
-                >
-                  Book Now
-                </button>
-              </div>
-            </article>
+      {/* ─── MORE EVENTS ───────────────────────────────────────────── */}
+      <section className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[#e7f2ff] font-[var(--font-schibsted-grotesk)]">
+            More Near You
+          </h2>
+          <Link href="#" className="text-sm text-[#59deca] hover:underline underline-offset-4">
+            See more →
+          </Link>
+        </div>
+        <div className="events">
+          {moreEvents.map((event) => (
+            <EventCard key={event.id} event={event} />
           ))}
         </div>
       </section>
 
       {/* ─── CTA BANNER ────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0d161a] to-[#182830] px-10 py-16 text-center">
+      <section className="relative overflow-hidden rounded-3xl border border-white/10">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <Image
+            src="/images/event-full.png"
+            alt="Host your own event"
+            fill
+            className="object-cover opacity-20"
+            sizes="100vw"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0d161a]/95 via-[#0d161a]/80 to-[#182830]/90" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_center,rgba(89,222,202,0.12),transparent_65%)]" />
-        <div className="relative flex flex-col items-center gap-6">
+
+        <div className="relative flex flex-col items-center gap-6 px-10 py-16 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white max-w-lg leading-tight font-[var(--font-schibsted-grotesk)]">
             Ready to Host Your&nbsp;
             <span className="text-[#59deca]">Own Event?</span>
