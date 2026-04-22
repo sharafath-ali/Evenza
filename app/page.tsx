@@ -57,6 +57,12 @@ export default function Home() {
           >
             Host an Event
           </Link>
+          <Link
+            href="/manage"
+            className="rounded-full border border-[#59deca]/20 bg-[#59deca]/5 px-8 py-3.5 text-sm font-semibold text-[#59deca] hover:bg-[#59deca]/10 transition-colors cursor-pointer"
+          >
+            Manage Events
+          </Link>
         </div>
       </section>
 

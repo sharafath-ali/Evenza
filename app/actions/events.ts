@@ -22,3 +22,17 @@ export async function bookTicket(eventId: string, name: string, email: string, q
   // we revalidate it to reflect the new attendees count instantly
   revalidatePath("/");
 }
+
+// ─── NEW MUTATION: DELETE EVENT ──────────────────────────────────────────
+export async function deleteEvent(formData: FormData) {
+  const eventId = formData.get("eventId") as string;
+  
+  if (!eventId) return;
+
+  // Since we have a cascading foreign key, deleting the event also cleans up bookings!
+  await db("events").where({ id: eventId }).delete();
+
+  // Revalidate both the manage page and the root page so updates are instant
+  revalidatePath("/manage");
+  revalidatePath("/");
+}
