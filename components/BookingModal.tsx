@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { EventEntry } from "@/app/api/events/route";
+import { bookTicket } from "@/app/actions/events";
 
 type Event = EventEntry;
 
@@ -17,11 +18,22 @@ export function BookingModal({
   const [email, setEmail] = useState("");
   const [qty, setQty] = useState(1);
   const [booked, setBooked] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
-    setBooked(true);
+    
+    setIsPending(true);
+    try {
+      await bookTicket(event.id, name, email, qty);
+      setBooked(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to book ticket");
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -140,9 +152,10 @@ export function BookingModal({
                 <button
                   id="confirm-booking-btn"
                   type="submit"
-                  className="w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_20px_rgba(89,222,202,0.25)]"
+                  disabled={isPending}
+                  className="w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_20px_rgba(89,222,202,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Confirm Booking
+                  {isPending ? "Booking..." : "Confirm Booking"}
                 </button>
               </form>
             </>
