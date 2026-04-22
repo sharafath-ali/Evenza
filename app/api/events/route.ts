@@ -15,6 +15,7 @@ export type EventEntry = {
   price: string;
   image: string;
   tag: string;
+  likes: number;
   created_at: string;
 };
 
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
         time: body.time ?? "",
         location: body.location?.trim() ?? "",
         attendees: 0,
+        likes: 0,
         price: body.price ? `$${body.price}` : "Free",
         image: body.image?.trim() || "/images/event1.png",
         tag: "New",

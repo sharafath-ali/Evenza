@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useOptimistic, useTransition } from "react";
+import { likeEvent } from "@/app/actions/events";
 import type { EventEntry } from "@/app/api/events/route";
 
 type Event = EventEntry;
@@ -13,6 +15,12 @@ export function EventCard({
   event: Event;
   onBook: (event: Event) => void;
 }) {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticLikes, addOptimisticLike] = useOptimistic(
+    event.likes ?? 0,
+    (state, amount: number) => state + amount
+  );
+
   return (
     <article
       id={`event-card-${event.id}`}
@@ -37,7 +45,31 @@ export function EventCard({
       </div>
 
       <div className="flex flex-col gap-2 px-4 pb-5 pt-3">
-        <span className="pill w-fit">{event.category}</span>
+        <div className="flex items-center justify-between">
+          <span className="pill w-fit">{event.category}</span>
+          <button 
+            type="button" 
+            onClick={() => {
+              startTransition(() => {
+                addOptimisticLike(1);
+                likeEvent(event.id);
+              });
+            }}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#bdbdbd] hover:text-red-400 transition-colors cursor-pointer group/like"
+          >
+            <svg 
+              className={`size-4 transition-all duration-300 group-hover/like:scale-110 ${optimisticLikes > (event.likes ?? 0) ? "fill-red-400 text-red-400 scale-110" : ""}`} 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth={2}
+            >
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            {optimisticLikes}
+          </button>
+        </div>
+        
         <h3 className="text-base font-semibold text-white leading-snug line-clamp-1 group-hover:text-[#59deca] transition-colors">
           {event.title}
         </h3>

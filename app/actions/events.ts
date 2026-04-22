@@ -22,3 +22,19 @@ export async function bookTicket(eventId: string, name: string, email: string, q
   // we revalidate it to reflect the new attendees count instantly
   revalidatePath("/");
 }
+
+// ─── NEW MUTATION: LIKE EVENT ──────────────────────────────────────────────
+export async function likeEvent(eventId: string) {
+  if (!eventId) return;
+
+  try {
+    await db("events").where({ id: eventId }).increment("likes", 1);
+    
+    // We strictly use revalidatePath to ensure Next.js updates its server cache globally!
+    revalidatePath("/");
+    revalidatePath(`/event/${eventId}`);
+    revalidatePath("/manage");
+  } catch (err) {
+    console.error("Failed to like event", err);
+  }
+}
