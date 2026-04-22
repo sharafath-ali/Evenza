@@ -1,12 +1,27 @@
 import db from "@/lib/db";
-import { deleteEvent } from "@/app/actions/events";
 import Link from "next/link";
 import Image from "next/image";
+import { revalidatePath } from "next/cache";
 import type { EventEntry } from "@/app/api/events/route";
 
 export default async function ManageEvents() {
   // Directly fetch data because this is a Server Component!
   const events = await db<EventEntry>("events").select("*").orderBy("created_at", "desc");
+
+  // ─── INLINE SERVER ACTION ──────────────────────────────────────────────────
+  async function deleteEvent(formData: FormData) {
+    "use server"; // Magic directive telling Next.js this is an RPC endpoint
+
+    const eventId = formData.get("eventId") as string;
+    if (!eventId) return;
+
+    // Since we have a cascading foreign key, deleting the event also cleans up bookings!
+    await db("events").where({ id: eventId }).delete();
+
+    // Revalidate both the manage page and the root page so updates are instant
+    revalidatePath("/manage");
+    revalidatePath("/");
+  }
 
   return (
     <main className="max-w-5xl mx-auto py-24 px-6 flex flex-col gap-8">
