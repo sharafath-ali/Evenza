@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { revalidatePath } from "next/cache";
 import type { EventEntry } from "@/app/api/events/route";
+import { DeleteSubmitButton } from "@/components/DeleteSubmitButton";
 
 export default async function ManageEvents() {
   // Directly fetch data because this is a Server Component!
@@ -61,12 +62,7 @@ export default async function ManageEvents() {
               {/* Notice how we use a standard HTML form connected directly to a Server Action */}
               <form action={deleteEvent}>
                 <input type="hidden" name="eventId" value={evt.id} />
-                <button
-                  type="submit"
-                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-500 hover:text-white transition-all cursor-pointer"
-                >
-                  Delete
-                </button>
+                <DeleteSubmitButton />
               </form>
             </div>
           ))}
