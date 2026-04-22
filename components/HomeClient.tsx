@@ -2,91 +2,13 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import type { EventEntry } from "@/app/api/events/route";
 
-/* ─── Data ──────────────────────────────────────────────────────────────── */
-
-const ALL_EVENTS = [
-  {
-    id: 1,
-    title: "Neon Nights Music Festival",
-    category: "Music",
-    date: "May 24, 2025",
-    time: "8:00 PM",
-    location: "Pulse Arena, Mumbai",
-    attendees: 4200,
-    price: "₹999",
-    image: "/images/event1.png",
-    tag: "Trending",
-  },
-  {
-    id: 2,
-    title: "TechSurge Developer Summit",
-    category: "Tech",
-    date: "Jun 7, 2025",
-    time: "10:00 AM",
-    location: "Nexus Hub, Bangalore",
-    attendees: 1800,
-    price: "₹499",
-    image: "/images/event2.png",
-    tag: "Selling Fast",
-  },
-  {
-    id: 3,
-    title: "Indie Art & Culture Fair",
-    category: "Art",
-    date: "Jun 15, 2025",
-    time: "11:00 AM",
-    location: "Gallery Commons, Delhi",
-    attendees: 900,
-    price: "Free",
-    image: "/images/event3.png",
-    tag: "Free Entry",
-  },
-  {
-    id: 4,
-    title: "Street Food Carnival",
-    category: "Food",
-    date: "Jun 22, 2025",
-    time: "12:00 PM",
-    location: "Central Park, Pune",
-    attendees: 3100,
-    price: "₹199",
-    image: "/images/event4.png",
-    tag: "New",
-  },
-  {
-    id: 5,
-    title: "Comedy Nights Live",
-    category: "Comedy",
-    date: "Jul 5, 2025",
-    time: "7:30 PM",
-    location: "Laugh Factory, Chennai",
-    attendees: 620,
-    price: "₹799",
-    image: "/images/event5.png",
-    tag: "Limited Seats",
-  },
-  {
-    id: 6,
-    title: "Premier League Watch Party",
-    category: "Sports",
-    date: "Jul 12, 2025",
-    time: "9:00 PM",
-    location: "FanZone Bar, Hyderabad",
-    attendees: 450,
-    price: "₹299",
-    image: "/images/event6.png",
-    tag: "Hot",
-  },
-];
-
-const CATEGORIES = ["All", "Music", "Tech", "Art", "Food", "Comedy", "Sports"];
+const CATEGORIES = ["All", "Music", "Tech", "Art", "Food", "Comedy", "Sports", "Other"];
 
 /* ─── Booking Modal ─────────────────────────────────────────────────────── */
 
-type StaticEvent = (typeof ALL_EVENTS)[0];
-type ApiEvent = { id: string; title: string; description: string; date: string; time: string; location: string; price: string; image: string; createdAt: string };
-type Event = StaticEvent | (Omit<StaticEvent, 'id'|'attendees'|'tag'|'category'> & { id: string; attendees: number; tag: string; category: string });
+type Event = EventEntry;
 
 function BookingModal({
   event,
@@ -219,7 +141,7 @@ function BookingModal({
                     <span className="ml-auto text-xs text-[#bdbdbd]">
                       {event.price === "Free"
                         ? "Free"
-                        : `Total: ${event.price.replace("₹", "₹")} × ${qty}`}
+                        : `Total: ${event.price} × ${qty}`}
                     </span>
                   </div>
                 </div>
@@ -295,15 +217,17 @@ function EventCard({
             </svg>
             {event.location}
           </div>
-          <div className="flex items-center gap-2">
-            <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            {event.attendees.toLocaleString()} going
-          </div>
+          {event.attendees > 0 && (
+            <div className="flex items-center gap-2">
+              <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {event.attendees.toLocaleString()} going
+            </div>
+          )}
         </div>
 
         <button
@@ -324,30 +248,16 @@ export default function HomeClient() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [userEvents, setUserEvents] = useState<StaticEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/events")
       .then((r) => r.json())
-      .then((data: ApiEvent[]) => {
-        const mapped: StaticEvent[] = data.map((e, i) => ({
-          id: ALL_EVENTS.length + i + 1,
-          title: e.title,
-          category: "Other",
-          date: e.date,
-          time: e.time,
-          location: e.location,
-          attendees: 0,
-          price: e.price,
-          image: e.image || "/images/event1.png",
-          tag: "New",
-        }));
-        setUserEvents(mapped);
-      })
-      .catch(() => {/* silently ignore if API is not ready */});
+      .then((data: Event[]) => setAllEvents(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
-
-  const allEvents = useMemo(() => [...ALL_EVENTS, ...userEvents], [userEvents]);
 
   const filtered = useMemo(() => {
     return allEvents.filter((e) => {
@@ -361,7 +271,7 @@ export default function HomeClient() {
         e.category.toLowerCase().includes(q);
       return matchCat && matchSearch;
     });
-  }, [search, activeCategory]);
+  }, [search, activeCategory, allEvents]);
 
   return (
     <>
@@ -436,7 +346,13 @@ export default function HomeClient() {
       )}
 
       {/* ─── Event Grid ──────────────────────────────────────────── */}
-      {filtered.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <svg className="size-8 animate-spin text-[#59deca]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
+        </div>
+      ) : filtered.length > 0 ? (
         <div className="grid sm:grid-cols-2 grid-cols-1 gap-8 w-full">
           {filtered.map((event) => (
             <EventCard
