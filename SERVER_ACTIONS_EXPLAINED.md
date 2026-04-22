@@ -160,3 +160,8 @@ Best for **UI-driven mutations**:
 
 ---
 
+## 📌 Important Note on `"use server"`
+
+In Next.js App Router, any function can become a Server Action by adding the `"use server"` directive inside it. Once marked, that function will always run on the server, and you can call it directly from forms or client components. You don't have to place Server Actions in a specific folder; they can be defined alongside your components or wherever it makes sense in your code. The key is that `"use server"` ensures server-side execution without needing a separate API route.
+
+In practice, `"use server"` is specifically for Server Actions. It ensures that a function executes on the server when triggered from a client or form. Outside of that, you don’t really use it for other contexts. For broader server-only code—like in API routes or Server Components—you don’t need `"use server"`. So its key importance is really tied to Server Actions.
