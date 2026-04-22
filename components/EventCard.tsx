@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { EventEntry } from "@/app/api/events/route";
 
 type Event = EventEntry;
@@ -71,13 +72,21 @@ export function EventCard({
           )}
         </div>
 
-        <button
-          id={`book-btn-${event.id}`}
-          onClick={() => onBook(event)}
-          className="mt-2 w-full rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200 cursor-pointer"
-        >
-          Book Now
-        </button>
+        <div className="mt-2 flex items-center gap-2">
+          <Link
+            href={`/event/${event.id}`}
+            className="flex-1 text-center rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-semibold text-[#bdbdbd] hover:text-white hover:bg-white/10 transition-all duration-200"
+          >
+            Details & Reviews
+          </Link>
+          <button
+            id={`book-btn-${event.id}`}
+            onClick={() => onBook(event)}
+            className="flex-1 rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200 cursor-pointer"
+          >
+            Book Now
+          </button>
+        </div>
       </div>
     </article>
   );
