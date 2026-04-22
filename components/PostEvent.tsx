@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 function PostEvent() {
+  const router = useRouter();
   const [eventData, setEventData] = useState({
     title: "",
     description: "",
@@ -12,6 +14,8 @@ function PostEvent() {
     price: "",
     image: "",
   });
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -20,17 +24,30 @@ function PostEvent() {
     setEventData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const existingEvents = localStorage.getItem("eventData");
-    if (existingEvents) {
-      const events = JSON.parse(existingEvents);
-      events.push(eventData);
-      localStorage.setItem("eventData", JSON.stringify(events));
-    } else {
-      localStorage.setItem("eventData", JSON.stringify([eventData]));
+    setStatus("loading");
+    setErrorMsg("");
+
+    try {
+      const res = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Failed to publish event");
+      }
+
+      setStatus("success");
+      // Redirect to homepage after a short delay so the user sees the success state
+      setTimeout(() => router.push("/"), 1500);
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
     }
-    console.log(eventData);
   };
 
   const inputClass =
@@ -246,23 +263,38 @@ function PostEvent() {
               </div>
             </div>
 
+            {/* Error message */}
+            {status === "error" && (
+              <p className="text-center text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">
+                ⚠ {errorMsg}
+              </p>
+            )}
+
             {/* Submit */}
             <button
               id="submit-event-btn"
               type="submit"
-              className="group relative mt-2 w-full overflow-hidden rounded-xl bg-[#59deca] px-6 py-4 text-sm font-bold text-black shadow-[0_0_32px_rgba(89,222,202,0.3)] transition-all duration-300 hover:bg-[#59deca]/90 hover:shadow-[0_0_48px_rgba(89,222,202,0.45)] active:scale-[0.98] cursor-pointer"
+              disabled={status === "loading" || status === "success"}
+              className="group relative mt-2 w-full overflow-hidden rounded-xl bg-[#59deca] px-6 py-4 text-sm font-bold text-black shadow-[0_0_32px_rgba(89,222,202,0.3)] transition-all duration-300 hover:bg-[#59deca]/90 hover:shadow-[0_0_48px_rgba(89,222,202,0.45)] active:scale-[0.98] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">
-                Publish Event
-                <svg
-                  className="size-4 transition-transform duration-300 group-hover:translate-x-1"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+                {status === "loading" && (
+                  <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                )}
+                {status === "success" ? "✓ Published! Redirecting…" : status === "loading" ? "Publishing…" : "Publish Event"}
+                {status === "idle" && (
+                  <svg
+                    className="size-4 transition-transform duration-300 group-hover:translate-x-1"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                )}
               </span>
               {/* shimmer */}
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />

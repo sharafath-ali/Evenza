@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 
 /* ─── Data ──────────────────────────────────────────────────────────────── */
@@ -84,7 +84,9 @@ const CATEGORIES = ["All", "Music", "Tech", "Art", "Food", "Comedy", "Sports"];
 
 /* ─── Booking Modal ─────────────────────────────────────────────────────── */
 
-type Event = (typeof ALL_EVENTS)[0];
+type StaticEvent = (typeof ALL_EVENTS)[0];
+type ApiEvent = { id: string; title: string; description: string; date: string; time: string; location: string; price: string; image: string; createdAt: string };
+type Event = StaticEvent | (Omit<StaticEvent, 'id'|'attendees'|'tag'|'category'> & { id: string; attendees: number; tag: string; category: string });
 
 function BookingModal({
   event,
@@ -322,9 +324,33 @@ export default function HomeClient() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [userEvents, setUserEvents] = useState<StaticEvent[]>([]);
+
+  useEffect(() => {
+    fetch("/api/events")
+      .then((r) => r.json())
+      .then((data: ApiEvent[]) => {
+        const mapped: StaticEvent[] = data.map((e, i) => ({
+          id: ALL_EVENTS.length + i + 1,
+          title: e.title,
+          category: "Other",
+          date: e.date,
+          time: e.time,
+          location: e.location,
+          attendees: 0,
+          price: e.price,
+          image: e.image || "/images/event1.png",
+          tag: "New",
+        }));
+        setUserEvents(mapped);
+      })
+      .catch(() => {/* silently ignore if API is not ready */});
+  }, []);
+
+  const allEvents = useMemo(() => [...ALL_EVENTS, ...userEvents], [userEvents]);
 
   const filtered = useMemo(() => {
-    return ALL_EVENTS.filter((e) => {
+    return allEvents.filter((e) => {
       const matchCat =
         activeCategory === "All" || e.category === activeCategory;
       const q = search.toLowerCase();
