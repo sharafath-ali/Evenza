@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import type { EventEntry } from "@/app/api/events/route";
 import { bookTicket } from "@/app/actions/events";
 
 type Event = EventEntry;
 
-export function BookingModal({
-  event,
-  onClose,
-}: {
-  event: Event;
-  onClose: () => void;
-}) {
+export function BookingModal({ event }: { event: Event }) {
+  const router = useRouter();
+  
+  const handleClose = () => {
+    router.push("/", { scroll: false });
+  };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [qty, setQty] = useState(1);
@@ -40,7 +40,7 @@ export function BookingModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#0d161a] shadow-[0_0_60px_rgba(89,222,202,0.15)] overflow-hidden"
@@ -58,7 +58,7 @@ export function BookingModal({
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0d161a]" />
           <button
             id="modal-close-btn"
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute top-3 right-3 flex size-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-white/20 transition-colors"
           >
             ✕
@@ -78,7 +78,7 @@ export function BookingModal({
               </p>
               <button
                 id="modal-done-btn"
-                onClick={onClose}
+                onClick={handleClose}
                 className="mt-2 w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors"
               >
                 Done

@@ -10,10 +10,8 @@ type Event = EventEntry;
 
 export function EventCard({
   event,
-  onBook,
 }: {
   event: Event;
-  onBook: (event: Event) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [optimisticLikes, addOptimisticLike] = useOptimistic(
@@ -111,13 +109,14 @@ export function EventCard({
           >
             Details & Reviews
           </Link>
-          <button
+          <Link
             id={`book-btn-${event.id}`}
-            onClick={() => onBook(event)}
-            className="flex-1 rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200 cursor-pointer"
+            href={`?book=${event.id}`}
+            scroll={false}
+            className="flex-1 text-center rounded-lg bg-[#59deca]/10 border border-[#59deca]/20 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all duration-200 cursor-pointer"
           >
             Book Now
-          </button>
+          </Link>
         </div>
       </div>
     </article>

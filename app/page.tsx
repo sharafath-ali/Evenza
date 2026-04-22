@@ -1,6 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import HomeClient from "@/components/HomeClient";
+import db from "@/lib/db";
+import type { EventEntry } from "@/app/api/events/route";
+import { BookingModal } from "@/components/BookingModal";
+import { EventCard } from "@/components/EventCard";
+import { SearchForm } from "@/components/SearchForm";
+import { CategoryFilter } from "@/components/CategoryFilter";
 
 const stats = [
   { value: "50K+", label: "Happy Attendees" },
@@ -9,7 +14,32 @@ const stats = [
   { value: "4.9★", label: "Avg. Rating" },
 ];
 
-export default function Home() {
+export default async function Home(props: {
+  searchParams: Promise<{ q?: string; category?: string; book?: string }>;
+}) {
+  const { q = "", category = "All", book } = await props.searchParams;
+
+  // Formulate purely Server-Side Query
+  let query = db<EventEntry>("events").select("*").orderBy("created_at", "desc");
+
+  if (category !== "All") {
+    query = query.where({ category });
+  }
+
+  if (q) {
+    query = query.where((builder) => {
+      builder.whereILike("title", `%${q}%`)
+             .orWhereILike("location", `%${q}%`)
+             .orWhereILike("category", `%${q}%`);
+    });
+  }
+
+  const filteredEvents = await query;
+  let bookEvent = null;
+  if (book) {
+    bookEvent = await db<EventEntry>("events").where({ id: book }).first();
+  }
+
   return (
     <main
       id="home"
@@ -36,7 +66,44 @@ export default function Home() {
         </p>
 
         {/* ── Interactive search + category filter + event grid ── */}
-        <HomeClient />
+        <SearchForm defaultValue={q} />
+        <CategoryFilter activeCategory={category} currentQuery={q} />
+
+        {/* ─── Results Count ───────────────────────────────────────── */}
+        {(q || category !== "All") && (
+          <p className="text-center text-xs text-[#bdbdbd] mt-2 mb-4">
+            Showing{" "}
+            <span className="text-[#59deca] font-semibold">{filteredEvents.length}</span>{" "}
+            {filteredEvents.length === 1 ? "event" : "events"}
+            {category !== "All" && (
+              <> in <span className="text-[#59deca] font-semibold">{category}</span></>
+            )}
+            {q && (
+              <> for &ldquo;<span className="text-[#59deca] font-semibold">{q}</span>&rdquo;</>
+            )}
+          </p>
+        )}
+
+        {/* ─── Natively Rendered SubGrid ──────────────────────────── */}
+        {filteredEvents.length > 0 ? (
+          <div className="grid sm:grid-cols-2 grid-cols-1 gap-8 w-full mt-4 text-left">
+            {filteredEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-16 text-center w-full">
+            <span className="text-4xl">🔍</span>
+            <p className="text-[#e7f2ff] font-semibold">No events found</p>
+            <p className="text-[#bdbdbd] text-sm">Try a different search or category</p>
+            <Link
+              href="/"
+              className="mt-2 rounded-full border border-[#59deca]/30 px-6 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca]/10 transition-colors cursor-pointer"
+            >
+              Clear filters
+            </Link>
+          </div>
+        )}
 
         {/* CTA row */}
         <div className="flex flex-wrap justify-center gap-4 mt-4">
@@ -140,6 +207,9 @@ export default function Home() {
           </button>
         </div>
       </section>
+
+      {/* ─── URL-Driven Booking Modal ──────────────────────────────── */}
+      {bookEvent && <BookingModal event={bookEvent as EventEntry} />}
     </main>
   );
 }
