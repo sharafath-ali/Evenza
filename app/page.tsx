@@ -50,12 +50,13 @@ export default function Home() {
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </Link>
-          <button
+          <Link
+            href="/addEvent"
             id="host-btn"
             className="rounded-full border border-white/10 bg-transparent px-8 py-3.5 text-sm font-semibold text-[#e7f2ff] hover:bg-white/5 transition-colors cursor-pointer"
           >
             Host an Event
-          </button>
+          </Link>
         </div>
       </section>
 
