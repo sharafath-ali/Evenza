@@ -12,6 +12,7 @@
     "db:seed": "knex --knexfile knex.config.ts seed:run"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "knex": "^3.2.9",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
