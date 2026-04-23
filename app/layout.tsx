@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import LightRays from "@/components/LightRays";
 import { Header } from "@/components/Header";
+import { UserProvider } from "@/components/UserProvider";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
 
@@ -46,8 +47,9 @@ export default async function RootLayout({
       className={cn("h-full", "antialiased", schibstedGrotesk.variable, martianMono.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">
-        <Header user={user} />
-        <div
+        <UserProvider user={user as any}>
+          <Header />
+          <div
           style={{
             position: "fixed",
             inset: 0,
@@ -74,6 +76,7 @@ export default async function RootLayout({
         <div style={{ position: "relative", zIndex: 1, display: "contents" }}>
           {children}
         </div>
+        </UserProvider>
       </body>
     </html>
   );

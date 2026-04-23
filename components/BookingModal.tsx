@@ -3,12 +3,14 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/components/UserProvider";
 import type { EventEntry } from "@/app/api/events/route";
 import { bookTicket } from "@/app/actions/events";
 
 type Event = EventEntry;
 
-export function BookingModal({ event, user }: { event: Event, user: any }) {
+export function BookingModal({ event }: { event: Event }) {
+  const user = useUser();
   const router = useRouter();
   
   const handleClose = () => {

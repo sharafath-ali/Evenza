@@ -5,7 +5,10 @@ import { User, LogOut, Settings, CalendarRange } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
-export function Header({ user }: { user: { name: string; email: string } | null }) {
+import { useUser } from "@/components/UserProvider";
+
+export function Header() {
+  const user = useUser();
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

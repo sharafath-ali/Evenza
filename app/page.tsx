@@ -220,7 +220,7 @@ export default async function Home(props: {
       </section>
 
       {/* ─── URL-Driven Booking Modal ──────────────────────────────── */}
-      {bookEvent && <BookingModal event={bookEvent as EventEntry} user={user} />}
+      {bookEvent && <BookingModal event={bookEvent as EventEntry} />}
     </main>
   );
 }
