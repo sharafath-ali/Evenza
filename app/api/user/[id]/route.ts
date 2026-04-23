@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import db from "@/lib/db";
-import { verifyToken, hashPassword, SESSION_COOKIE } from "@/lib/auth";
+import { verifyToken, hashPassword, signToken, SESSION_COOKIE, COOKIE_OPTIONS } from "@/lib/auth";
 
 /* ─── Auth guard ──────────────────────────────────────────────────────────── */
 
@@ -125,6 +125,15 @@ export async function PATCH(
       .where({ id })
       .update(updates)
       .returning(["id", "name", "email", "updated_at"]);
+
+    // Reissue token with new name/email
+    const cookieStore = await cookies();
+    const newToken = await signToken({
+      sub: user.id,
+      name: user.name,
+      email: user.email,
+    });
+    cookieStore.set(SESSION_COOKIE, newToken, COOKIE_OPTIONS);
 
     return NextResponse.json(user);
   } catch (error) {

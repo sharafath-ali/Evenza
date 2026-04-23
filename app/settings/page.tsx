@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
+import { EditProfileForm } from "@/components/EditProfileForm";
 
 export default async function SettingsPage() {
   const cookieStore = await cookies();
@@ -27,17 +28,8 @@ export default async function SettingsPage() {
         <div className="space-y-6">
           <div className="flex flex-col gap-2 border-b border-white/10 pb-6">
             <span className="text-xs font-semibold text-[#59deca] uppercase tracking-wider">Profile</span>
-            <div className="flex justify-between items-center">
-                <div>
-                    <p className="text-sm text-[#e7f2ff]">Full Name</p>
-                    <p className="text-lg font-medium text-white">{user.name || "N/A"}</p>
-                </div>
-            </div>
-            <div className="flex justify-between items-center mt-2">
-                <div>
-                    <p className="text-sm text-[#e7f2ff]">Email Address</p>
-                    <p className="text-lg font-medium text-white">{user.email}</p>
-                </div>
+            <div className="mt-4">
+              <EditProfileForm user={{ id: user.sub, name: user.name, email: user.email }} />
             </div>
           </div>
           
