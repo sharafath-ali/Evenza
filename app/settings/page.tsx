@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 
 export default async function SettingsPage() {
   const cookieStore = await cookies();
@@ -43,9 +44,7 @@ export default async function SettingsPage() {
           <div className="flex flex-col gap-2 pt-2">
             <span className="text-xs font-semibold text-[#59deca] uppercase tracking-wider">Danger Zone</span>
             <p className="text-sm text-[#bdbdbd] max-w-sm">Once you delete your account, there is no going back. Please be certain.</p>
-            <button className="w-fit mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-6 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-500/10 transition-colors">
-                Delete Account
-            </button>
+            <DeleteAccountButton />
           </div>
         </div>
       </div>
