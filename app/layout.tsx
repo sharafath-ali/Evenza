@@ -3,6 +3,9 @@ import { Schibsted_Grotesk, Martian_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import LightRays from "@/components/LightRays";
+import { Header } from "@/components/Header";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -23,17 +26,27 @@ export const metadata: Metadata = {
   description: "Discover and book events near you",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  let user = null;
+  if (token) {
+    try {
+      user = await verifyToken(token);
+    } catch (e) {}
+  }
+
   return (
     <html
       lang="en"
       className={cn("h-full", "antialiased", schibstedGrotesk.variable, martianMono.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">
+        <Header user={user} />
         <div
           style={{
             position: "fixed",

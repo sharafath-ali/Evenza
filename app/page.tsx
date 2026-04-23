@@ -6,6 +6,8 @@ import { BookingModal } from "@/components/BookingModal";
 import { EventCard } from "@/components/EventCard";
 import { SearchForm } from "@/components/SearchForm";
 import { CategoryFilter } from "@/components/CategoryFilter";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
 
 const stats = [
   { value: "50K+", label: "Happy Attendees" },
@@ -38,6 +40,15 @@ export default async function Home(props: {
   let bookEvent = null;
   if (book) {
     bookEvent = await db<EventEntry>("events").where({ id: book }).first();
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  let user = null;
+  if (token) {
+    try {
+      user = await verifyToken(token);
+    } catch (e) {}
   }
 
   return (
@@ -209,7 +220,7 @@ export default async function Home(props: {
       </section>
 
       {/* ─── URL-Driven Booking Modal ──────────────────────────────── */}
-      {bookEvent && <BookingModal event={bookEvent as EventEntry} />}
+      {bookEvent && <BookingModal event={bookEvent as EventEntry} user={user} />}
     </main>
   );
 }

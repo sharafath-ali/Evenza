@@ -8,17 +8,22 @@ import { bookTicket } from "@/app/actions/events";
 
 type Event = EventEntry;
 
-export function BookingModal({ event }: { event: Event }) {
+export function BookingModal({ event, user }: { event: Event, user: any }) {
   const router = useRouter();
   
   const handleClose = () => {
     router.push("/", { scroll: false });
   };
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [qty, setQty] = useState(1);
   const [booked, setBooked] = useState(false);
   const [isPending, setIsPending] = useState(false);
+
+  const handleLoginRedirect = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push(`/login?callbackUrl=/?book=${event.id}`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,14 +154,23 @@ export function BookingModal({ event }: { event: Event }) {
                   </div>
                 </div>
 
-                <button
-                  id="confirm-booking-btn"
-                  type="submit"
-                  disabled={isPending}
-                  className="w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_20px_rgba(89,222,202,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isPending ? "Booking..." : "Confirm Booking"}
-                </button>
+                {!user ? (
+                  <button
+                    onClick={handleLoginRedirect}
+                    className="w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_20px_rgba(89,222,202,0.25)]"
+                  >
+                    Log in to Book
+                  </button>
+                ) : (
+                  <button
+                    id="confirm-booking-btn"
+                    type="submit"
+                    disabled={isPending}
+                    className="w-full rounded-lg bg-[#59deca] py-2.5 text-sm font-bold text-black hover:bg-[#59deca]/85 transition-colors shadow-[0_0_20px_rgba(89,222,202,0.25)] disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isPending ? "Booking..." : "Confirm Booking"}
+                  </button>
+                )}
               </form>
             </>
           )}
