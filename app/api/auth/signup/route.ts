@@ -51,16 +51,16 @@ export async function POST(request: Request) {
         email: email.toLowerCase().trim(),
         password_hash,
       })
-      .returning(["id", "name", "email", "created_at"]);
+      .returning(["id", "name", "email", "role", "created_at"]);
 
     /* ── Issue JWT ── */
-    const token = await signToken({ sub: user.id, email: user.email, name: user.name });
+    const token = await signToken({ sub: user.id, email: user.email, name: user.name, role: user.role });
 
     const cookieStore = await cookies();
     cookieStore.set(SESSION_COOKIE, token, COOKIE_OPTIONS);
 
     return NextResponse.json(
-      { id: user.id, name: user.name, email: user.email },
+      { id: user.id, name: user.name, email: user.email, role: user.role },
       { status: 201 }
     );
   } catch (error) {

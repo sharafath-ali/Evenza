@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       sub: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
     });
 
     const cookieStore = await cookies();
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
   } catch (error) {
     console.error("[POST /api/auth/login]", error);

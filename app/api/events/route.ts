@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import db from "@/lib/db";
+import { verifyToken, SESSION_COOKIE } from "@/lib/auth";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -35,12 +37,23 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!token) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    let payload;
+    try {
+      payload = await verifyToken(token);
+    } catch {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
     if (!body.title?.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const [newEvent] = await db<EventEntry>("events")
+    const [newEvent] = await db<EventEntry & { user_id: string }>("events")
       .insert({
+        user_id: payload.sub,
         title: body.title.trim(),
         description: body.description?.trim() ?? "",
         category: "Other",

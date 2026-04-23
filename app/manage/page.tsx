@@ -2,24 +2,58 @@ import db from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifyToken } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import type { EventEntry } from "@/app/api/events/route";
 import { DeleteSubmitButton } from "@/components/DeleteSubmitButton";
 
 export default async function ManageEvents() {
-  // Directly fetch data because this is a Server Component!
-  const events = await db<EventEntry>("events").select("*").orderBy("created_at", "desc");
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+
+  if (!token) redirect("/login");
+
+  let user: { sub: string; role: string } | null = null;
+  try {
+    user = (await verifyToken(token)) as any;
+  } catch (e) {
+    redirect("/login");
+  }
+
+  // Data fetching logic based on role
+  let query = db<EventEntry & { user_id: string }>("events").select("*").orderBy("created_at", "desc");
+  if (user.role !== "admin") {
+    query = query.where({ user_id: user.sub });
+  }
+
+  const events = await query;
 
   // ─── INLINE SERVER ACTION ──────────────────────────────────────────────────
   async function deleteEvent(formData: FormData) {
     "use server"; // Magic directive telling Next.js this is an RPC endpoint
 
+    const actionCookie = await cookies();
+    const actionToken = actionCookie.get(SESSION_COOKIE)?.value;
+    if (!actionToken) throw new Error("Unauthorized");
+    
+    let actionUser;
+    try {
+      actionUser = (await verifyToken(actionToken)) as any;
+    } catch {
+      throw new Error("Unauthorized");
+    }
+
     const eventId = formData.get("eventId") as string;
     if (!eventId) return;
 
-    // Since we have a cascading foreign key, deleting the event also cleans up bookings!
-    await db("events").where({ id: eventId }).delete();
+    // Strict validation: Must be an admin, or the owner of the event
+    if (actionUser.role === "admin") {
+      await db("events").where({ id: eventId }).delete();
+    } else {
+      await db("events").where({ id: eventId, user_id: actionUser.sub }).delete();
+    }
 
-    // Revalidate both the manage page and the root page so updates are instant
     revalidatePath("/manage");
     revalidatePath("/");
   }
@@ -37,7 +71,7 @@ export default async function ManageEvents() {
       </div>
 
       <p className="text-[#bdbdbd] mb-4">
-        As an admin, you can delete events below. This page is a <strong>Server Component</strong>, and the delete button triggers a <strong>Server Action</strong>.
+        As {user.role === 'admin' ? "an admin" : "a user"}, you can delete {user.role === 'admin' ? "any event" : "your created events"} below. This page is a <strong>Server Component</strong>, and the delete button triggers a <strong>Server Action</strong>.
       </p>
 
       {events.length === 0 ? (

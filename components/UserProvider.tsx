@@ -6,6 +6,7 @@ export type UserPayload = {
   sub: string;
   name: string;
   email: string;
+  role: string;
 } | null;
 
 interface UserContextType {

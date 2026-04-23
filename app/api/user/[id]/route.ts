@@ -124,14 +124,15 @@ export async function PATCH(
     const [user] = await db("users")
       .where({ id })
       .update(updates)
-      .returning(["id", "name", "email", "updated_at"]);
+      .returning(["id", "name", "email", "role", "updated_at"]);
 
-    // Reissue token with new name/email
+    // Reissue token with new name/email/role
     const cookieStore = await cookies();
     const newToken = await signToken({
       sub: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
     cookieStore.set(SESSION_COOKIE, newToken, COOKIE_OPTIONS);
 
