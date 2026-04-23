@@ -168,11 +168,3 @@ In practice, `"use server"` is specifically for Server Actions. It ensures that 
 
 The `useFormState` (or `useFormAction`) hook connects a server action to a form’s state. The first argument is your server action function, which runs on form submission. The second argument is the initial form state—like default values or status. When the form is submitted, the returned array gives you two things: a function to trigger the action, and a state object (like success or error). “IsPending” tells you if the action is still running, so you can show loading states. In short, this hook keeps your UI in sync with the server action’s progress and results.
 
-## Caching & Dynamic Rendering in Next.js
-
-It is important to understand how Next.js caching works by default:
-- **Dynamic Data**: Middleware, dynamic routes, and layouts that rely on things like cookies or user-specific logic **won't be automatically cached**. They run per request, ensuring fresh data.
-- **Route Handlers**: API routes won't be cached automatically when using dynamic functions like `cookies()` or reading the `Request` object.
-- **Force Dynamic**: If you explicitly set a page or route to use dynamic rendering (e.g., `export const dynamic = "force-dynamic"`), that ensures it won't be cached either.
-- **Static vs Dynamic**: On the other hand, purely static pages (like prerendered content) are cached by default. Essentially, anything tied to real-time data, user state, or request-time checks will remain dynamic. If you want something cached in those scenarios, you have to opt in or configure it explicitly.
-
