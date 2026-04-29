@@ -71,7 +71,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
 
           <div className="flex flex-wrap items-center gap-4 my-2">
             <span className="text-2xl font-bold text-white">
-              {eventData.price > 0 ? `$${eventData.price}` : "Free"}
+              {eventData.price || "Free"}
             </span>
             <div className="h-4 w-px bg-white/20" />
             <span className="text-[#59deca] font-semibold">
