@@ -21,7 +21,7 @@ export default async function MyBookings() {
   // Fetch the user's bookings, joined with event details
   const bookings = await db("bookings")
     .join("events", "bookings.event_id", "events.id")
-    .where("bookings.user_id", user.sub)
+    .where("bookings.user_id", user!.sub)
     .select(
       "bookings.id as booking_id",
       "bookings.qty",

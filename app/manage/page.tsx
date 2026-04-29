@@ -23,8 +23,8 @@ export default async function ManageEvents() {
 
   // Data fetching logic based on role
   let query = db<EventEntry & { user_id: string }>("events").select("*").orderBy("created_at", "desc");
-  if (user.role !== "admin") {
-    query = query.where({ user_id: user.sub });
+  if (user!.role !== "admin") {
+    query = query.where({ user_id: user!.sub });
   }
 
   const events = await query;
@@ -71,7 +71,7 @@ export default async function ManageEvents() {
       </div>
 
       <p className="text-[#bdbdbd] mb-4">
-        As {user.role === 'admin' ? "an admin" : "a user"}, you can delete {user.role === 'admin' ? "any event" : "your created events"} below. This page is a <strong>Server Component</strong>, and the delete button triggers a <strong>Server Action</strong>.
+        As {user!.role === 'admin' ? "an admin" : "a user"}, you can delete {user!.role === 'admin' ? "any event" : "your created events"} below. This page is a <strong>Server Component</strong>, and the delete button triggers a <strong>Server Action</strong>.
       </p>
 
       {events.length === 0 ? (
