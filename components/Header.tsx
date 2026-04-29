@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { User, LogOut, Settings, CalendarRange } from "lucide-react";
+import { User, LogOut, Settings, CalendarRange, Ticket } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
@@ -79,6 +79,14 @@ export function Header() {
                   >
                     <CalendarRange size={16} />
                     Manage Events
+                  </Link>
+                  <Link
+                    href="/bookings"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#e7f2ff] hover:bg-white/5 hover:text-white transition-colors"
+                  >
+                    <Ticket size={16} />
+                    My Bookings
                   </Link>
                   <Link
                     href="/settings"

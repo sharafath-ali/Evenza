@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-function PostEvent() {
+import type { EventEntry } from "@/app/api/events/route";
+
+export function PostEvent({ initialData }: { initialData?: EventEntry }) {
   const router = useRouter();
   const [eventData, setEventData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    location: "",
-    price: "",
-    image: "",
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    date: initialData?.date || "",
+    time: initialData?.time || "",
+    location: initialData?.location || "",
+    price: initialData?.price ? String(initialData.price).replace("$", "") : "",
+    image: initialData?.image || "",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -30,20 +32,25 @@ function PostEvent() {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/events", {
-        method: "POST",
+      const isEdit = !!initialData;
+      const url = isEdit ? `/api/events/${initialData.id}` : "/api/events";
+      
+      const res = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(eventData),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Failed to publish event");
+        throw new Error(data.error ?? `Failed to ${isEdit ? "update" : "publish"} event`);
       }
 
       setStatus("success");
-      // Redirect to homepage after a short delay so the user sees the success state
-      setTimeout(() => router.push("/"), 1500);
+      setTimeout(() => {
+        router.refresh();
+        router.push(isEdit ? "/manage" : "/");
+      }, 1500);
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
@@ -76,12 +83,13 @@ function PostEvent() {
             Create · Publish · Inspire
           </span>
           <h1 className="text-4xl font-bold mb-2">
-            Host an{" "}
+            {initialData ? "Edit" : "Host an"}{" "}
             <span className="text-gradient">Event</span>
           </h1>
           <p className="text-[#bdbdbd] text-sm max-w-sm mx-auto">
-            Fill in the details below and publish your event to thousands of
-            eager attendees on Evenza.
+            {initialData 
+              ? "Update your event details below to keep your attendees informed."
+              : "Fill in the details below and publish your event to thousands of eager attendees on Evenza."}
           </p>
         </div>
 
@@ -283,7 +291,11 @@ function PostEvent() {
                     <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                   </svg>
                 )}
-                {status === "success" ? "✓ Published! Redirecting…" : status === "loading" ? "Publishing…" : "Publish Event"}
+                {status === "success" 
+                  ? (initialData ? "✓ Updated! Redirecting…" : "✓ Published! Redirecting…") 
+                  : status === "loading" 
+                    ? (initialData ? "Updating…" : "Publishing…") 
+                    : (initialData ? "Save Changes" : "Publish Event")}
                 {status === "idle" && (
                   <svg
                     className="size-4 transition-transform duration-300 group-hover:translate-x-1"
@@ -306,4 +318,3 @@ function PostEvent() {
   );
 }
 
-export default PostEvent;

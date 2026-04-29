@@ -1,4 +1,4 @@
-import PostEvent from "@/components/PostEvent";
+import { PostEvent } from "@/components/PostEvent";
 
 export default function AddEvent() {
     return (

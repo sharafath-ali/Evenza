@@ -93,11 +93,19 @@ export default async function ManageEvents() {
                 </div>
               </div>
 
-              {/* Notice how we use a standard HTML form connected directly to a Server Action */}
-              <form action={deleteEvent}>
-                <input type="hidden" name="eventId" value={evt.id} />
-                <DeleteSubmitButton />
-              </form>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/editEvent/${evt.id}`}
+                  className="rounded-lg border border-[#59deca]/30 bg-[#59deca]/10 px-4 py-2 text-xs font-semibold text-[#59deca] hover:bg-[#59deca] hover:text-black transition-all"
+                >
+                  Edit
+                </Link>
+                {/* Notice how we use a standard HTML form connected directly to a Server Action */}
+                <form action={deleteEvent}>
+                  <input type="hidden" name="eventId" value={evt.id} />
+                  <DeleteSubmitButton />
+                </form>
+              </div>
             </div>
           ))}
         </div>
